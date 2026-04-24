@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration scan="true">
+  <property name="LOG_FILE" value="application-dev.log"/>
+  <include resource="org/springframework/boot/logging/logback/base.xml"/>
+
+  <logger name="org.springframework.web" level="DEBUG"/>
+  <logger name="org.springframework.security" level="TRACE"/>
+  <logger name="org.springframework.cache" level="TRACE"/>
+  <logger name="fr.recia" level="DEBUG"/>
+
+  <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+    <resetJUL>true</resetJUL>
+  </contextListener>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+</configuration>

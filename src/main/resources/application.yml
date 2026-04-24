@@ -1,0 +1,51 @@
+server:
+  port: 8079
+
+logging:
+  config: 'classpath:logback-dev.xml'
+
+spring:
+  application:
+    name: restriction-rentree-api
+  datasource:
+    internal:
+      jdbc-url: jdbc:mariadb://localhost:3306/restrictions_rentree
+      username: admin
+      password: admin
+      driver-class-name: org.mariadb.jdbc.Driver
+    sarapis:
+      jdbc-url: jdbc:mariadb://localhost:3306/sarapis
+      username: admin
+      password: admin
+      driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+      dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+restriction:
+  default-date: 1772702716
+  start-date: 1772002716
+  eleves-classe-regex: "[^:]+:[^:]+:[^:]+_{UAI}:[^:]+:Eleves_(.+)"
+  parents-classe-regex: "[^:]+:[^:]+:[^:]+_{UAI}:[^:]+:Parents_(.+)"
+  regex-placeholder: "{UAI}"
+  security:
+    KEY_123:
+      name: CAS
+      allowedIps:
+        - 192.168.1.0/24
+        - 127.0.0.1
+        - ::1
+      allowedPaths:
+        - /api/restriction/cas
+    KEY_456:
+      name: GLC
+      allowedIps:
+        - 192.168.1.0/24
+        - 127.0.0.1
+        - ::1
+      allowedPaths:
+        - /api/restriction/etab/**
