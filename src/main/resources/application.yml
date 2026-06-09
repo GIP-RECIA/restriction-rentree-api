@@ -27,6 +27,8 @@ spring:
     database-platform: org.hibernate.dialect.MySQL8Dialect
 
 restriction:
+  uai-reunion:
+    - 0180000A
   default-date: 1772702716
   start-date: 1772002716
   eleves-classe-regex: "[^:]+:[^:]+:[^:]+_{UAI}:[^:]+:Eleves_(.+)"

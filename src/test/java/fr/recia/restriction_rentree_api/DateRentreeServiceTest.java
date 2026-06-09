@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -126,7 +127,7 @@ class DateRentreeServiceTest {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
         Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).build();
-        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(ZonedDateTime.now().minusDays(1)).build();
+        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(ZonedDateTime.now().minusDays(1).toLocalDateTime()).build();
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
@@ -140,7 +141,7 @@ class DateRentreeServiceTest {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
         Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).build();
-        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(ZonedDateTime.now().plusDays(1)).build();
+        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(ZonedDateTime.now().plusDays(1).toLocalDateTime()).build();
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
@@ -153,7 +154,7 @@ class DateRentreeServiceTest {
     void shouldUseNiveauDateWhenClasseDateIsNull() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
-        Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).dateRentree(ZonedDateTime.now().minusDays(1)).build();
+        Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).dateRentree(ZonedDateTime.now().minusDays(1).toLocalDateTime()).build();
         Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(null).build();
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
@@ -166,7 +167,7 @@ class DateRentreeServiceTest {
     @Test
     void shouldUseEtablissementDateWhenClasseAndNiveauDatesAreNull() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
-        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).dateRentree(ZonedDateTime.now().minusDays(1)).build();
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).dateRentree(ZonedDateTime.now().minusDays(1).toLocalDateTime()).build();
         Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).dateRentree(null).build();
         Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(null).build();
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
@@ -179,12 +180,13 @@ class DateRentreeServiceTest {
 
     @Test
     void shouldUseDefaultDateWhenNoDateDefined() {
-        when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1));
+        ZoneId zoneId = ZoneId.systemDefault();
+        when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1).toLocalDateTime());
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).dateRentree(null).build();
         Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).dateRentree(null).build();
         Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(null).build();
-        when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1).toLocalDateTime());
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
@@ -209,7 +211,7 @@ class DateRentreeServiceTest {
     void shouldUpdateEtablissementWhenSettingRestriction() {
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
         RestrictionEtab restriction = new RestrictionEtab();
-        restriction.setDateRentreeEtab(ZonedDateTime.now().plusDays(2));
+        restriction.setDateRentreeEtab(ZonedDateTime.now().plusDays(2).toLocalDateTime());
         restriction.setEnabled(false);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
         dateRentreeService.setNewRestriction(UAI, restriction);
@@ -224,8 +226,9 @@ class DateRentreeServiceTest {
 
     @Test
     void shouldCreateEtablissementIfNotExistsAndReturnRestrictions() {
-        when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1));
-        when(restrictionProperties.getStartDate()).thenReturn(ZonedDateTime.now().minusDays(10));
+        ZoneId zoneId = ZoneId.systemDefault();
+        when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1).toLocalDateTime());
+        when(restrictionProperties.getStartDate()).thenReturn(ZonedDateTime.now().minusDays(10).toLocalDateTime());
         SarapisRequestClasseDTO dto = new SarapisRequestClasseDTO();
         dto.setNiveau(_3EME);
         dto.setClasse(_3EME_A);

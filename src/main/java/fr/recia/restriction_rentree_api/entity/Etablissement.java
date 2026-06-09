@@ -2,6 +2,8 @@ package fr.recia.restriction_rentree_api.entity;
 
 import javax.persistence.*;
 import lombok.*;
+
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 @Entity
@@ -22,5 +24,5 @@ public class Etablissement {
     private boolean enabled;
 
     @Column(columnDefinition = "TIMESTAMP")
-    private ZonedDateTime dateRentree;
+    private LocalDateTime dateRentree;
 }

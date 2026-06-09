@@ -15,6 +15,8 @@ import fr.recia.restriction_rentree_api.repository.NiveauRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ public class DateRentreeService {
     private final SarapisQueryService sarapisClasseRetrieveService;
     private final ClasseCalculatorService classeCalculatorService;
     private final RestrictionProperties restrictionProperties;
+    private static final String ZONE_ID_REUNION = "Indian/Reunion";
 
     public DateRentreeService(EtablissementRepository etablissementRepository, NiveauRepository niveauRepository, ClasseRepository classeRepository,
                               SarapisQueryService sarapisClasseRetrieveService, ClasseCalculatorService classeCalculatorService, RestrictionProperties restrictionProperties){
@@ -67,10 +70,12 @@ public class DateRentreeService {
                     return false;
                 }
                 Classe classe = classes.get(0);
-                ZonedDateTime now = ZonedDateTime.now();
+                // On compare l'heure actuelle dans le fuseau horaire souhaité avec l'heure demandée dans le fuseau horaire souhaité
+                ZonedDateTime now = ZonedDateTime.now(getZoneIdFromUai(uai));
+                ZonedDateTime dateRentree = getDateRentreeEffective(classe).atZone(getZoneIdFromUai(uai));
                 log.debug("Now is {}", now);
                 log.debug("Restriction for {} applies for {}", classe.getNom(), getDateRentreeEffective(classe));
-                return now.isAfter(getDateRentreeEffective(classe));
+                return now.isAfter(dateRentree);
             }
         } else {
             log.warn("No class was found in groups for request {}", request);
@@ -84,6 +89,8 @@ public class DateRentreeService {
      * Créé des restrictions vides si elles n'existent pas encore
      */
     public RestrictionEtab getRestrictions(String uai) {
+
+        final ZoneId zoneId = getZoneIdFromUai(uai);
 
         // Récupération des classes de l'établissement depuis Sarapis
         List<SarapisRequestClasseDTO> classesExternes = sarapisClasseRetrieveService.getClasses(uai);
@@ -132,7 +139,6 @@ public class DateRentreeService {
         restriction.setDateRentreeDefaut(restrictionProperties.getDefaultDate());
         restriction.setDateDebutBloquage(restrictionProperties.getStartDate());
         restriction.setEnabled(etab.isEnabled());
-        // TODO : une seule requête avec une jointure ?
         List<RestrictionNiveau> niveaux = niveauRepository.findByEtablissement(etab).stream()
                 .map(n -> {
                     RestrictionNiveau rn = new RestrictionNiveau();
@@ -186,7 +192,7 @@ public class DateRentreeService {
         log.debug("New restriction for etab {} was set : {}", uai, restrictionEtab);
     }
 
-    private ZonedDateTime getDateRentreeEffective(Classe classe) {
+    private LocalDateTime getDateRentreeEffective(Classe classe) {
         if (classe.getDateRentree() != null) {
             return classe.getDateRentree();
         }
@@ -197,6 +203,16 @@ public class DateRentreeService {
             return classe.getNiveau().getEtablissement().getDateRentree();
         }
         return restrictionProperties.getDefaultDate();
+    }
+
+    /**
+     * Donne la ZoneId associée à l'établissement en fonction de son UAI pour gestion du fuseau horaire
+     */
+    private ZoneId getZoneIdFromUai(String uai){
+        if(restrictionProperties.getUaiReunion().contains(uai)){
+            return ZoneId.of(ZONE_ID_REUNION);
+        }
+        return ZoneId.systemDefault();
     }
 
 }

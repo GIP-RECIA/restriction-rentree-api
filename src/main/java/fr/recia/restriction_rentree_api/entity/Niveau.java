@@ -2,6 +2,8 @@ package fr.recia.restriction_rentree_api.entity;
 
 import javax.persistence.*;
 import lombok.*;
+
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 @Entity
@@ -20,7 +22,7 @@ public class Niveau {
     private String nom;
 
     @Column(columnDefinition = "TIMESTAMP")
-    private ZonedDateTime dateRentree;
+    private LocalDateTime dateRentree;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "etablissement_id", nullable = false)

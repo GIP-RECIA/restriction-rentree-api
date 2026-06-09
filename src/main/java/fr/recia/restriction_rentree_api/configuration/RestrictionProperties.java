@@ -7,9 +7,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.Set;
 
 @Configuration
 @ConfigurationProperties(prefix = "restriction")
@@ -24,13 +26,14 @@ public class RestrictionProperties {
     private String parentsClasseRegex;
     private String regexPlaceholder;
     private Map<String, SecurityProperty> security;
+    private Set<String> uaiReunion;
 
-    public ZonedDateTime getDefaultDate() {
-        return Instant.ofEpochSecond(defaultDate).atZone(ZoneId.systemDefault());
+    public LocalDateTime getDefaultDate() {
+        return Instant.ofEpochSecond(defaultDate).atZone(ZoneOffset.UTC).toLocalDateTime();
     }
 
-    public ZonedDateTime getStartDate() {
-        return Instant.ofEpochSecond(startDate).atZone(ZoneId.systemDefault());
+    public LocalDateTime getStartDate() {
+        return Instant.ofEpochSecond(startDate).atZone(ZoneOffset.UTC).toLocalDateTime();
     }
 
 }
