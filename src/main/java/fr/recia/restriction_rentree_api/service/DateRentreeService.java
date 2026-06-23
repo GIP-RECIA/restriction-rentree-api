@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -137,9 +136,6 @@ public class DateRentreeService {
         // Une fois qu'on sûr qu'ils sont bien dans la BD, on peut la lire pour constuire le DTO
         RestrictionEtab restriction = new RestrictionEtab();
         restriction.setDateRentreeEtab(etab.getDateRentree());
-        if(etab.getDateRentree()!=null){
-            etab.setDateRentree(etab.getDateRentree().atZone(ZoneOffset.UTC).withZoneSameInstant(zoneId).toLocalDateTime());
-        }
         restriction.setDateRentreeDefaut(restrictionProperties.getDefaultDate());
         restriction.setDateDebutBloquage(restrictionProperties.getStartDate());
         restriction.setEnabled(etab.isEnabled());
@@ -148,17 +144,11 @@ public class DateRentreeService {
                     RestrictionNiveau rn = new RestrictionNiveau();
                     rn.setNiveau(n.getNom());
                     rn.setDateRentreeNiveau(n.getDateRentree());
-                    if(n.getDateRentree()!=null){
-                        rn.setDateRentreeNiveau(n.getDateRentree().atZone(ZoneOffset.UTC).withZoneSameInstant(zoneId).toLocalDateTime());
-                    }
                     List<RestrictionClasse> classes = classeRepository.findByNiveau(n).stream()
                             .map(c -> {
                                 RestrictionClasse rc = new RestrictionClasse();
                                 rc.setClasse(c.getNom());
                                 rc.setDateRentreeClasse(c.getDateRentree());
-                                if(c.getDateRentree()!=null){
-                                    rc.setDateRentreeClasse(c.getDateRentree().atZone(ZoneOffset.UTC).withZoneSameInstant(zoneId).toLocalDateTime());
-                                }
                                 return rc;
                             }).collect(Collectors.toList());
                     rn.setClasses(classes);
