@@ -1,10 +1,9 @@
 ```sql
-CREATE TABLE etablissement
-(
+CREATE TABLE etablissement (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
     uai         VARCHAR(255) NOT NULL,
-    dateRentree DATETIME    NULL DEFAULT NULL
-    enabled     tinyint(1)   DEFAULT 1;
+    dateRentree DATETIME NULL DEFAULT NULL,
+    enabled     TINYINT(1) DEFAULT 1
 );
 
 CREATE TABLE niveau
