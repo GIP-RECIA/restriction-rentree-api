@@ -50,38 +50,49 @@ public class DateRentreeService {
     public boolean isAccessAllowed(AccessStrategyRequest request){
         String classeNom = classeCalculatorService.getClasse(request);
         String uai = request.getEtablissement();
-        // TODO : si on ne trouve pas de classe du tout alors il faut juste regarder la date de l'établissement et bloquer si besoin
-        if(classeNom != null && uai != null){
+        if(uai == null){
+            return false;
+        }
+        if(classeNom != null){
             log.debug("Class found for request {}", request);
             Etablissement etab = etablissementRepository.findByUai(uai).orElse(null);
+            // Si l'étab est null c'est juste que ça a jamais été configuré, donc on regarde quand même par rapport aux dates par défaut
             if(etab == null){
                 log.warn("No etab was found in database for request {}", request);
-                return false;
+                return isOutsidePeriod(restrictionProperties.getDefaultDate(), getZoneIdFromUai(uai));
             }
             if(etab.isEnabled()){
                 // On suppose que dans un même établissement on a pas 2 classes qui portent le même nom exact
                 List<Classe> classes = classeRepository.findByNomAndEtablissement(classeNom, etab.getId());
                 if (classes.isEmpty()) {
                     log.warn("No class was found in database for request {}", request);
-                    return false;
+                    return isOutsidePeriod(restrictionProperties.getDefaultDate(), getZoneIdFromUai(uai));
                 }
                 if (classes.size() > 1) {
                     log.warn("Multiple classes found in database for request {}", request);
-                    return false;
+                    return isOutsidePeriod(restrictionProperties.getDefaultDate(), getZoneIdFromUai(uai));
                 }
                 Classe classe = classes.get(0);
-                // On compare l'heure actuelle dans le fuseau horaire souhaité avec l'heure demandée dans le fuseau horaire souhaité
-                ZonedDateTime now = ZonedDateTime.now(getZoneIdFromUai(uai));
-                ZonedDateTime dateRentree = getDateRentreeEffective(classe).atZone(getZoneIdFromUai(uai));
-                log.debug("Now is {}", now);
-                log.debug("Restriction for {} applies for {}", classe.getNom(), getDateRentreeEffective(classe));
-                return now.isAfter(dateRentree);
+                return isOutsidePeriod(getDateRentreeEffective(classe), getZoneIdFromUai(uai));
             }
         } else {
             log.warn("No class was found in groups for request {}", request);
-            return false;
+            return isOutsidePeriod(restrictionProperties.getDefaultDate(), getZoneIdFromUai(uai));
         }
         return true;
+    }
+
+    /**
+     * Méthode interne qui regarde si une date est contenue dans la période indiquée pour la zone demandée
+     */
+    private boolean isOutsidePeriod(LocalDateTime endDate, ZoneId zoneId){
+        // On compare l'heure actuelle dans le fuseau horaire souhaité avec l'heure demandée dans le fuseau horaire souhaité
+        ZonedDateTime now = ZonedDateTime.now(zoneId);
+        ZonedDateTime startDate = restrictionProperties.getStartDate().atZone(zoneId);
+        ZonedDateTime dateRentree = endDate.atZone(zoneId);
+        log.debug("Now is {}", now);
+        log.debug("Restriction starts at {} and ends at {}", startDate, dateRentree);
+        return now.isAfter(dateRentree) || now.isBefore(startDate);
     }
 
     /**
@@ -89,8 +100,6 @@ public class DateRentreeService {
      * Créé des restrictions vides si elles n'existent pas encore
      */
     public RestrictionEtab getRestrictions(String uai) {
-
-        final ZoneId zoneId = getZoneIdFromUai(uai);
 
         // Récupération des classes de l'établissement depuis Sarapis
         List<SarapisRequestClasseDTO> classesExternes = sarapisClasseRetrieveService.getClasses(uai);

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -58,12 +58,36 @@ class DateRentreeServiceTest {
     // =========================================================
 
     @Test
-    void shouldReturnFalseWhenClasseIsNull() {
+    void shouldReturnTrueWhenClasseIsNullAndBeforeStartDate() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         when(classeCalculatorService.getClasse(request)).thenReturn(null);
         when(request.getEtablissement()).thenReturn(UAI);
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().plusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(10));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalseWhenClasseIsNullAndBetweenStartAndEndDates() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        when(classeCalculatorService.getClasse(request)).thenReturn(null);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(1));
         boolean result = dateRentreeService.isAccessAllowed(request);
         assertThat(result).isFalse();
+    }
+
+    @Test
+    void shouldReturnTrueWhenClasseIsNullAndAfterDefaultEndDate() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        when(classeCalculatorService.getClasse(request)).thenReturn(null);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
     }
 
     @Test
@@ -76,11 +100,37 @@ class DateRentreeServiceTest {
     }
 
     @Test
-    void shouldReturnFalseWhenEtablissementNotFound() {
+    void shouldReturnTrueWhenEtablissementNotFoundAndAfterDefaultEndDate() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.empty());
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void shouldReturnTrueWhenEtablissementNotFoundAndBeforeStartDate() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.empty());
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().plusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(10));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalseWhenEtablissementNotFoundAndBetweenStartAndEndDates() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.empty());
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(1));
         boolean result = dateRentreeService.isAccessAllowed(request);
         assertThat(result).isFalse();
     }
@@ -97,19 +147,49 @@ class DateRentreeServiceTest {
     }
 
     @Test
-    void shouldReturnFalseWhenNoClasseFoundInDatabase() {
+    void shouldReturnTrueWhenNoClasseFoundInDatabaseAndBeforeStartDate() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
         when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of());
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().plusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(10));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalseWhenNoClasseFoundInDatabaseAndBetweenStartAndEndDates() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of());
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(1));
         boolean result = dateRentreeService.isAccessAllowed(request);
         assertThat(result).isFalse();
     }
 
     @Test
-    void shouldReturnFalseWhenMultipleClassesFound() {
+    void shouldReturnTrueWhenNoClasseFoundInDatabaseAndAfterDefaultEndDate() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of());
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void shouldReturnTrueWhenMultipleClassesFoundAndBeforeStartDate() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
         Classe c1 = mock(Classe.class);
@@ -118,16 +198,50 @@ class DateRentreeServiceTest {
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
         when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of(c1, c2));
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().plusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(10));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalseWhenMultipleClassesFoundAndBetweenStartAndEndDates() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        Classe c1 = mock(Classe.class);
+        Classe c2 = mock(Classe.class);
+        when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of(c1, c2));
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().plusDays(1));
         boolean result = dateRentreeService.isAccessAllowed(request);
         assertThat(result).isFalse();
     }
 
     @Test
-    void shouldReturnTrueWhenNowIsAfterDate() {
+    void shouldReturnTrueWhenMultipleClassesFoundAndAfterDefaultEndDate() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        Classe c1 = mock(Classe.class);
+        Classe c2 = mock(Classe.class);
+        when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of(c1, c2));
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
+        when(restrictionProperties.getDefaultDate()).thenReturn(LocalDateTime.now().minusDays(1));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+    @Test
+    void shouldReturnTrueWhenNowIsAfterEndDate() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
         Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).build();
-        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(ZonedDateTime.now().minusDays(1).toLocalDateTime()).build();
+        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(LocalDateTime.now().minusDays(1)).build();
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
@@ -137,11 +251,27 @@ class DateRentreeServiceTest {
     }
 
     @Test
-    void shouldReturnFalseWhenNowIsBeforeDate() {
+    void shouldReturnTrueWhenNowIsBeforeStartDate() {
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
         Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).build();
-        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(ZonedDateTime.now().plusDays(1).toLocalDateTime()).build();
+        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(LocalDateTime.now().plusDays(10)).build();
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().plusDays(1));
+        when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
+        when(request.getEtablissement()).thenReturn(UAI);
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of(classe));
+        boolean result = dateRentreeService.isAccessAllowed(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalseWhenNowIsBetweenStartDateAndEndDate() {
+        AccessStrategyRequest request = mock(AccessStrategyRequest.class);
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        Niveau niveau = Niveau.builder().nom(_3EME).etablissement(etab).build();
+        Classe classe = Classe.builder().nom(_3EME_A).niveau(niveau).dateRentree(LocalDateTime.now().plusDays(1)).build();
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(1));
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
@@ -159,6 +289,7 @@ class DateRentreeServiceTest {
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
         when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of(classe));
         boolean result = dateRentreeService.isAccessAllowed(request);
         assertThat(result).isTrue();
@@ -173,6 +304,7 @@ class DateRentreeServiceTest {
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
         when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of(classe));
         boolean result = dateRentreeService.isAccessAllowed(request);
         assertThat(result).isTrue();
@@ -180,7 +312,6 @@ class DateRentreeServiceTest {
 
     @Test
     void shouldUseDefaultDateWhenNoDateDefined() {
-        ZoneId zoneId = ZoneId.systemDefault();
         when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1).toLocalDateTime());
         AccessStrategyRequest request = mock(AccessStrategyRequest.class);
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).dateRentree(null).build();
@@ -190,6 +321,7 @@ class DateRentreeServiceTest {
         when(classeCalculatorService.getClasse(request)).thenReturn(_3EME_A);
         when(request.getEtablissement()).thenReturn(UAI);
         when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(restrictionProperties.getStartDate()).thenReturn(LocalDateTime.now().minusDays(10));
         when(classeRepository.findByNomAndEtablissement(_3EME_A, 1L)).thenReturn(List.of(classe));
         boolean result = dateRentreeService.isAccessAllowed(request);
         assertThat(result).isTrue();
@@ -226,7 +358,6 @@ class DateRentreeServiceTest {
 
     @Test
     void shouldCreateEtablissementIfNotExistsAndReturnRestrictions() {
-        ZoneId zoneId = ZoneId.systemDefault();
         when(restrictionProperties.getDefaultDate()).thenReturn(ZonedDateTime.now().minusDays(1).toLocalDateTime());
         when(restrictionProperties.getStartDate()).thenReturn(ZonedDateTime.now().minusDays(10).toLocalDateTime());
         SarapisRequestClasseDTO dto = new SarapisRequestClasseDTO();
