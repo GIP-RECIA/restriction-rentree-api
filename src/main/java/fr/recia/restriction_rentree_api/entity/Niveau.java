@@ -24,7 +24,7 @@ public class Niveau {
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime dateRentree;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "etablissement_id", nullable = false)
     private Etablissement etablissement;
 }
