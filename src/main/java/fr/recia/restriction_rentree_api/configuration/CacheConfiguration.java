@@ -12,9 +12,9 @@ public class CacheConfiguration {
 
     @Bean
     public Cache<String, Boolean> accessDecisionCache() {
-        // TODO : externaliser ces properties
+        // TODO : externaliser ces properties - mettre moins de 15 minutes ? car sinon il va y avoir un décalage
         return Caffeine.newBuilder()
-                .expireAfterWrite(Duration.ofMinutes(15))
+                .expireAfterWrite(Duration.ofMinutes(5))
                 .maximumSize(10000)
                 .build();
     }
