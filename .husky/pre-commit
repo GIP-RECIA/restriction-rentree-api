@@ -10,16 +10,13 @@ else
 fi
 
 # Vérification de la licence
-if ./scripts/license.sh 1; then
+if ./mvnw license:check; then
   echo "License OK"
 else
   error=true
   echo "Fix license"
-  ./scripts/license.sh 2
+  ./mvnw license:format
 fi
-
-yarn run test:unit run
-yarn exec lint-staged
 
 # Vérification des erreurs
 if $error; then

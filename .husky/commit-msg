@@ -1,1 +1,8 @@
-yarn exec commitlint --edit ${1}
+commit_msg=$(head -n1 "$1")
+pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9_-]+\))?!?: .+'
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo "Commit message does not follow Conventional Commits format: type(scope): description"
+  echo "Got: $commit_msg"
+  exit 1
+fi
