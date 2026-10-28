@@ -1,0 +1,137 @@
+# For more information see: https://docs.github.com/en/actions/
+
+name: Project CI
+
+on:
+  push:
+    branches: ['main']
+    paths: ['**.java', '.github/workflows/**', 'pom.xml']
+  pull_request:
+    branches: ['main']
+    paths: ['**.java', '.github/workflows/**', 'pom.xml']
+  workflow_dispatch:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+
+    name: Check diffs
+
+    outputs:
+      java: ${{ steps.check-java.outputs.changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Java
+        id: check-java
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -qE '\.java$|pom\.xml'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Debug outputs
+        run: |
+          git diff --name-only HEAD^ HEAD
+          echo "Java changes: ${{ steps.check-java.outputs.changed }}"
+  license-headers:
+    runs-on: ubuntu-latest
+
+    name: Check and generate license headers
+
+    needs: changes
+
+    continue-on-error: true
+
+    if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.java == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v5
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Check license headers
+        id: check
+        run: ./mvnw license:check
+
+      - name: Generate license headers
+        if: ${{ github.event_name != 'pull_request' && needs.changes.outputs.java == 'true' && steps.check.conclusion == 'failure' }}
+        id: generate
+        run: ./mvnw license:format
+
+      - name: Commit changes
+        if: ${{ github.event_name != 'pull_request' && steps.generate.conclusion == 'success' }}
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [[ `git status --porcelain src/` ]]; then
+            git add src/
+            git commit -m "docs: generate missing license headers"
+            git push
+          fi
+
+  backend:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: ['11']
+
+    env:
+      LANG: 'fr_FR.UTF-8'
+      LC_ALL: 'fr_FR.UTF-8'
+      LANGUAGE: 'fr_FR.UTF-8'
+      LC_CTYPE: 'fr_FR.UTF-8'
+      TZ: 'Europe/Paris'
+
+    name: Java ${{ matrix.java }}
+
+    needs: changes
+
+    if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.java == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+#      - name: Checkout badges branch to a badges directory nested inside first checkout
+#        uses: actions/checkout@v6
+#        with:
+#          ref: badges
+#          path: badges
+
+      - name: Set timezone
+        uses: szenius/set-timezone@v2.0
+        with:
+          timezoneLinux: 'Europe/Paris'
+
+      - name: Set up locale ENV
+        run: |
+          sudo locale-gen $LANG
+          sudo update-locale LANG=$LANG
+          sudo apt install net-tools
+
+      - name: Check locales
+        run: locale -a
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build backend
+        run: ./mvnw -B clean package -Dmaven.test.skip=true -Darguments="-DskipTests"
+
+      - name: Tests backend
+        run: ./mvnw -B test # -Ptest
