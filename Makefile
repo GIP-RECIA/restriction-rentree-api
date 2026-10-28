@@ -1,5 +1,5 @@
 .PHONY: help db db-init db-down db-clean wait-db init-project run build test clean
-
+SHELL := /bin/bash
 DB_CONTAINER := restriction-rentree-db
 DB_IMAGE := mariadb:11
 
@@ -16,44 +16,24 @@ help:
 	@echo "make init-project - tout en un : lance la BDD, attend qu'elle soit prete, cree le schema, compile"
 
 db:
-	docker run -d --name $(DB_CONTAINER) \
-		-p 3306:3306 \
-		-e MYSQL_ROOT_PASSWORD=root \
-		-e MYSQL_DATABASE=restrictions_rentree \
-		-e MYSQL_USER=admin \
-		-e MYSQL_PASSWORD=admin \
-		$(DB_IMAGE)
+	@if [ "$$(docker ps -aq -f name=^$(DB_CONTAINER)$$)" ]; then \
+		  echo "Conteneur $(DB_CONTAINER) existe deja, demarrage..."; \
+		  docker start $(DB_CONTAINER); \
+	else \
+		  docker run -d --name $(DB_CONTAINER) \
+			    -p 3306:3306 \
+			    -e MYSQL_ROOT_PASSWORD=root \
+			    -e MYSQL_DATABASE=restrictions_rentree \
+			    -e MYSQL_USER=admin \
+			    -e MYSQL_PASSWORD=admin \
+			    $(DB_IMAGE); \
+	fi
 	@echo "Attends ~10s que MariaDB soit prete, puis lance 'make db-init'"
 
 db-init:
 	docker exec -i $(DB_CONTAINER) mariadb -uroot -proot -e \
 		  "CREATE DATABASE IF NOT EXISTS sarapis; GRANT ALL ON sarapis.* TO 'admin'@'%'; FLUSH PRIVILEGES;"
-	docker exec -i $(DB_CONTAINER) mariadb -uadmin -padmin restrictions_rentree <<-'SQL'
-		  CREATE TABLE IF NOT EXISTS etablissement (
-			id	    BIGINT AUTO_INCREMENT PRIMARY KEY,
-			uai	   VARCHAR(255) NOT NULL,
-			dateRentree DATETIME NULL DEFAULT NULL,
-			enabled     TINYINT(1) DEFAULT 1
-		  );
-		  CREATE TABLE IF NOT EXISTS niveau (
-			id		   BIGINT AUTO_INCREMENT PRIMARY KEY,
-			etablissement_id BIGINT	 NOT NULL,
-			nom		  VARCHAR(255) NOT NULL,
-			dateRentree	DATETIME NULL,
-			CONSTRAINT fk_niveau_etablissement FOREIGN KEY (etablissement_id) REFERENCES etablissement (id) ONCASCADE,
-			CONSTRAINT uk_niveau UNIQUE (etablissement_id, nom)
-		  );
-		  CREATE TABLE IF NOT EXISTS classe (
-			id	    BIGINT AUTO_INCREMENT PRIMARY KEY,
-			niveau_id   BIGINT	 NOT NULL,
-			nom	   VARCHAR(255) NOT NULL,
-			dateRentree DATETIME NULL,
-			CONSTRAINT fk_classe_niveau FOREIGN KEY (niveau_id) REFERENCES niveau (id) ON DELETE CASCADE,
-			CONSTRAINT uk_classe UNIQUE (niveau_id, nom)
-		  );
-		  CREATE INDEX IF NOT EXISTS idx_niveau_etablissement ON niveau(etablissement_id);
-		  CREATE INDEX IF NOT EXISTS idx_classe_niveau ON classe(niveau_id);
-	SQL
+	docker exec -i $(DB_CONTAINER) mariadb -uadmin -padmin restrictions_rentree < sql/restrictions_rentree.sql
 	@echo "Schema restrictions_rentree applique, base sarapis creee (vide)."
 
 db-down:
@@ -75,7 +55,7 @@ clean:
 	./mvnw clean
 wait-db:
 	@echo "Attente du demarrage de MariaDB..."
-	@until docker exec $(DB_CONTAINER) mariadb-admin ping -uroot -proot --silent 2>/dev/null; do sleep 1; done
+	@until docker exec $(DB_CONTAINER) mariadb -uroot -proot -e "SELECT 1" > /dev/null 2>&1; do sleep 1; done
 	@echo "MariaDB est prete."
 
 init-project: db wait-db db-init build
