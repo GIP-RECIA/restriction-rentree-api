@@ -1,4 +1,4 @@
-.PHONY: help db db-init db-down db-clean wait-db init-project run build test clean
+.PHONY: help db db-init sarapis-mock db-down db-clean wait-db init-project run build test clean
 SHELL := /bin/bash
 DB_CONTAINER := restriction-rentree-db
 DB_IMAGE := mariadb:11
@@ -6,6 +6,7 @@ DB_IMAGE := mariadb:11
 help:
 	@echo "make db	  - lance MariaDB en local (conteneur Docker, port 3306)"
 	@echo "make db-init   - crée le schema restrictions_rentree (depuis DB.md) + la base sarapis vide"
+	@echo "make sarapis-mock - charge un jeu de donnees factice dans sarapis (UAI 0180000A / classe 6A1 / 6EME)"
 	@echo "make db-down   - arrete le conteneur (les donnees sont gardees)"
 	@echo "make db-clean  - arrete et supprime le conteneur + ses donnees"
 	@echo "make build     - compile le projet (./mvnw clean package)"
@@ -36,6 +37,10 @@ db-init:
 	docker exec -i $(DB_CONTAINER) mariadb -uadmin -padmin restrictions_rentree < sql/restrictions_rentree.sql
 	@echo "Schema restrictions_rentree applique, base sarapis creee (vide)."
 
+sarapis-mock:
+	docker exec -i $(DB_CONTAINER) mariadb -uadmin -padmin sarapis < sql/sarapis_mock.sql
+	@echo "Donnees factices sarapis chargees."
+
 db-down:
 	docker stop $(DB_CONTAINER)
 
@@ -58,5 +63,5 @@ wait-db:
 	@until docker exec $(DB_CONTAINER) mariadb -uroot -proot -e "SELECT 1" > /dev/null 2>&1; do sleep 1; done
 	@echo "MariaDB est prete."
 
-init-project: db wait-db db-init build
+init-project: db wait-db db-init sarapis-mock build
 	@echo "Projet initialise : base de donnees prete, build termine. Lance 'make run' pour demarrer l'app."
