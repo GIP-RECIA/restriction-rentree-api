@@ -192,6 +192,17 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <configuration>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <localCheckout>true</localCheckout>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <pushChanges>true</pushChanges>
+                    <scmCommentPrefix>build(release): [maven-release-plugin]</scmCommentPrefix>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>
                     <packagingExcludes>**/application*.yml,
@@ -208,17 +219,6 @@
                     <licenseMapping>
                         <param>etc/license-mappings.xml</param>
                     </licenseMapping>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
-                    <localCheckout>true</localCheckout>
-                    <tagNameFormat>@{project.version}</tagNameFormat>
-                    <pushChanges>true</pushChanges>
-                    <scmCommentPrefix>build(release): [maven-release-plugin]</scmCommentPrefix>
                 </configuration>
             </plugin>
         </plugins>
