@@ -26,7 +26,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,7 +56,6 @@ public class InternalDataSourceConfig {
         em.setPackagesToScan("fr.recia.restriction_rentree_api.entity");
         em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         Map<String, Object> properties = new HashMap<>();
-        properties.put("hibernate.dialect", internalJpaProperties.getDialect());
         properties.put("hibernate.hbm2ddl.auto", internalJpaProperties.getDdlAuto());
         em.setJpaPropertyMap(properties);
         return em;

@@ -24,6 +24,5 @@ import org.springframework.context.annotation.Configuration;
 @Data
 public class InternalJpaProperties {
 
-    private String dialect;
     private String ddlAuto;
 }

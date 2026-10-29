@@ -15,7 +15,7 @@
  */
 package fr.recia.restriction_rentree_api.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
