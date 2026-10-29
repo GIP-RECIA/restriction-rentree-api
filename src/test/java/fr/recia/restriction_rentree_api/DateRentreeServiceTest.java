@@ -27,7 +27,9 @@ import java.util.Optional;
 
 import fr.recia.restriction_rentree_api.configuration.RestrictionProperties;
 import fr.recia.restriction_rentree_api.dto.AccessStrategyRequest;
+import fr.recia.restriction_rentree_api.dto.RestrictionClasse;
 import fr.recia.restriction_rentree_api.dto.RestrictionEtab;
+import fr.recia.restriction_rentree_api.dto.RestrictionNiveau;
 import fr.recia.restriction_rentree_api.dto.SarapisRequestClasseDTO;
 import fr.recia.restriction_rentree_api.entity.Classe;
 import fr.recia.restriction_rentree_api.entity.Niveau;
@@ -353,7 +355,6 @@ class DateRentreeServiceTest {
         assertThrows(RuntimeException.class, () -> dateRentreeService.setNewRestriction(UAI, restriction));
     }
 
-    // TODO : vérifier aussi l'update de la date des niveaux et classes
     @Test
     void shouldUpdateEtablissementWhenSettingRestriction() {
         Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
@@ -365,6 +366,101 @@ class DateRentreeServiceTest {
         assertThat(etab.getDateRentree()).isEqualTo(restriction.getDateRentreeEtab());
         assertThat(etab.isEnabled()).isFalse();
         verify(etablissementRepository).save(etab);
+    }
+
+    @Test
+    void shouldUpdateNiveauAndClasseDatesWhenSettingRestriction() {
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        Niveau niveau = Niveau.builder().id(1L).nom(_3EME).etablissement(etab).build();
+        Classe classe = Classe.builder().id(1L).nom(_3EME_A).niveau(niveau).build();
+
+        LocalDateTime newNiveauDate = ZonedDateTime.now().plusDays(3).toLocalDateTime();
+        LocalDateTime newClasseDate = ZonedDateTime.now().plusDays(5).toLocalDateTime();
+
+        RestrictionClasse restrictionClasse = new RestrictionClasse();
+        restrictionClasse.setClasse(_3EME_A);
+        restrictionClasse.setDateRentreeClasse(newClasseDate);
+
+        RestrictionNiveau restrictionNiveau = new RestrictionNiveau();
+        restrictionNiveau.setNiveau(_3EME);
+        restrictionNiveau.setDateRentreeNiveau(newNiveauDate);
+        restrictionNiveau.setClasses(List.of(restrictionClasse));
+
+        RestrictionEtab restriction = new RestrictionEtab();
+        restriction.setDateRentreeEtab(etab.getDateRentree());
+        restriction.setEnabled(true);
+        restriction.setNiveaux(List.of(restrictionNiveau));
+
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(niveauRepository.findByEtablissementAndNom(etab, _3EME)).thenReturn(Optional.of(niveau));
+        when(classeRepository.findByNiveauAndNom(niveau, _3EME_A)).thenReturn(Optional.of(classe));
+
+        dateRentreeService.setNewRestriction(UAI, restriction);
+
+        assertThat(niveau.getDateRentree()).isEqualTo(newNiveauDate);
+        assertThat(classe.getDateRentree()).isEqualTo(newClasseDate);
+        verify(niveauRepository).save(niveau);
+        verify(classeRepository).save(classe);
+    }
+
+    @Test
+    void shouldNotTouchClasseRepositoryWhenNiveauHasNoClasses() {
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        Niveau niveau = Niveau.builder().id(1L).nom(_3EME).etablissement(etab).build();
+
+        RestrictionNiveau restrictionNiveau = new RestrictionNiveau();
+        restrictionNiveau.setNiveau(_3EME);
+        restrictionNiveau.setDateRentreeNiveau(ZonedDateTime.now().plusDays(3).toLocalDateTime());
+        restrictionNiveau.setClasses(null);
+
+        RestrictionEtab restriction = new RestrictionEtab();
+        restriction.setNiveaux(List.of(restrictionNiveau));
+
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(niveauRepository.findByEtablissementAndNom(etab, _3EME)).thenReturn(Optional.of(niveau));
+
+        dateRentreeService.setNewRestriction(UAI, restriction);
+
+        verify(niveauRepository).save(niveau);
+        verifyNoInteractions(classeRepository);
+    }
+
+    @Test
+    void shouldThrowWhenSettingRestrictionForUnknownNiveau() {
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+
+        RestrictionNiveau restrictionNiveau = new RestrictionNiveau();
+        restrictionNiveau.setNiveau(_3EME);
+
+        RestrictionEtab restriction = new RestrictionEtab();
+        restriction.setNiveaux(List.of(restrictionNiveau));
+
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(niveauRepository.findByEtablissementAndNom(etab, _3EME)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> dateRentreeService.setNewRestriction(UAI, restriction));
+    }
+
+    @Test
+    void shouldThrowWhenSettingRestrictionForUnknownClasse() {
+        Etablissement etab = Etablissement.builder().id(1L).uai(UAI).enabled(true).build();
+        Niveau niveau = Niveau.builder().id(1L).nom(_3EME).etablissement(etab).build();
+
+        RestrictionClasse restrictionClasse = new RestrictionClasse();
+        restrictionClasse.setClasse(_3EME_A);
+
+        RestrictionNiveau restrictionNiveau = new RestrictionNiveau();
+        restrictionNiveau.setNiveau(_3EME);
+        restrictionNiveau.setClasses(List.of(restrictionClasse));
+
+        RestrictionEtab restriction = new RestrictionEtab();
+        restriction.setNiveaux(List.of(restrictionNiveau));
+
+        when(etablissementRepository.findByUai(UAI)).thenReturn(Optional.of(etab));
+        when(niveauRepository.findByEtablissementAndNom(etab, _3EME)).thenReturn(Optional.of(niveau));
+        when(classeRepository.findByNiveauAndNom(niveau, _3EME_A)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> dateRentreeService.setNewRestriction(UAI, restriction));
     }
 
     // =========================================================
