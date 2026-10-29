@@ -20,17 +20,14 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Duration;
-
 @Configuration
 public class CacheConfiguration {
 
     @Bean
-    public Cache<String, Boolean> accessDecisionCache() {
-        // TODO : externaliser ces properties - mettre moins de 15 minutes ? car sinon il va y avoir un décalage
+    public Cache<String, Boolean> accessDecisionCache(CacheProperties cacheProperties) {
         return Caffeine.newBuilder()
-                .expireAfterWrite(Duration.ofMinutes(5))
-                .maximumSize(10000)
+                .expireAfterWrite(cacheProperties.getTtl())
+                .maximumSize(cacheProperties.getMaxSize())
                 .build();
     }
 }

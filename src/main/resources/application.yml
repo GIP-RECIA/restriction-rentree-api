@@ -51,3 +51,7 @@ restriction:
         - ::1
       allowedPaths:
         - /api/restriction/etab/**
+cache:
+  access-decision:
+    ttl: 5m
+    max-size: 10000
