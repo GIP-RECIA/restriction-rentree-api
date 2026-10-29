@@ -52,6 +52,14 @@
                 <artifactId>logback-core</artifactId>
                 <version>1.6.6</version>
             </dependency>
+            <!-- jackson-databind 3.2.x référence JsonApplyView (ajouté dans jackson-annotations 2.22) alors
+                 que Spring Boot 4.1.2 épingle encore jackson-annotations 2.21 -> NoClassDefFoundError à la
+                 sérialisation (spring-projects/spring-boot#52392). À retirer une fois backporté. -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>2.22</version>
+            </dependency>
             <!-- CVE-2026-60586 / CVE-2026-60623 : fix non backporté dans Boot 4.1.x (spring-boot#52295) - à retirer une fois backporté -->
             <dependency>
                 <groupId>com.mysql</groupId>
@@ -67,14 +75,6 @@
                 <groupId>tools.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>3.2.4</version>
-            </dependency>
-            <!-- jackson-databind 3.2.x référence JsonApplyView (ajouté dans jackson-annotations 2.22) alors
-                 que Spring Boot 4.1.2 épingle encore jackson-annotations 2.21 -> NoClassDefFoundError à la
-                 sérialisation (spring-projects/spring-boot#52392). À retirer une fois backporté. -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>2.22</version>
             </dependency>
 
         </dependencies>
