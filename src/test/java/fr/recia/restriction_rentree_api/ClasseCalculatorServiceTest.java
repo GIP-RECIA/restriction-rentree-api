@@ -20,13 +20,19 @@ import fr.recia.restriction_rentree_api.dto.AccessStrategyRequest;
 import fr.recia.restriction_rentree_api.dto.TypedList;
 import fr.recia.restriction_rentree_api.service.ClasseCalculatorService;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 class ClasseCalculatorServiceTest {
+
+	private static final String UAI = "0450000A";
+	private static final String AUTRE_UAI = "0180000A";
 
 	private static ClasseCalculatorService classeCalculatorService;
 
@@ -39,32 +45,38 @@ class ClasseCalculatorServiceTest {
 		classeCalculatorService = new ClasseCalculatorService(restrictionProperties);
 	}
 
-	@Test
-	void shouldReturnClasseWhenElevesGroupMatches() {
-		AccessStrategyRequest request = buildRequest("0450000A", List.of("e1", "e2", "clg45:Etablissements:FICTIF CLG 45_0450000A:3EME:Eleves_3EME A"));
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("classeMatchingCases")
+	void shouldReturnExpectedClasse(String testName, List<String> groups, String expectedClasse) {
+		AccessStrategyRequest request = buildRequest(UAI, groups);
 		String result = classeCalculatorService.getClasse(request);
-		assertThat(result).isEqualTo("3EME A");
+		assertThat(result).isEqualTo(expectedClasse);
 	}
 
-	@Test
-	void shouldReturnClasseWhenParentsGroupMatches() {
-		AccessStrategyRequest request = buildRequest("0450000A", List.of("e1", "e2", "clg45:Etablissements:FICTIF CLG 45_0450000A:3EME:Parents_3EME B"));
-		String result = classeCalculatorService.getClasse(request);
-		assertThat(result).isEqualTo("3EME B");
+	private static Stream<Arguments> classeMatchingCases() {
+		return Stream.of(
+				Arguments.of(
+						"eleves group matches",
+						List.of("e1", "e2", groupe(UAI, "Eleves", "3EME A")),
+						"3EME A"),
+				Arguments.of(
+						"parents group matches",
+						List.of("e1", "e2", groupe(UAI, "Parents", "3EME B")),
+						"3EME B"),
+				Arguments.of(
+						"group matching current etab is picked among several etabs",
+						List.of(groupe(AUTRE_UAI, "Parents", "3EME C"), groupe(UAI, "Parents", "3EME D")),
+						"3EME D"),
+				Arguments.of(
+						"no group matches (role is neither eleves nor parents)",
+						List.of("e1", "e2", groupe(UAI, "Profs", "3EME A")),
+						null)
+		);
 	}
 
-	@Test
-	void shouldReturnGroupMatchingCurrentEtab() {
-		AccessStrategyRequest request = buildRequest("0450000A", List.of("clg45:Etablissements:FICTIF CLG 45_0180000A:3EME:Parents_3EME C", "clg45:Etablissements:FICTIF CLG 45_0450000A:3EME:Parents_3EME D"));
-		String result = classeCalculatorService.getClasse(request);
-		assertThat(result).isEqualTo("3EME D");
-	}
-
-	@Test
-	void shouldReturnNullWhenNoGroupMatches() {
-		AccessStrategyRequest request = buildRequest("0450000A", List.of("e1", "e2", "clg45:Etablissements:FICTIF CLG 45_0450000A:3EME:Profs_3EME A"));
-		String result = classeCalculatorService.getClasse(request);
-		assertThat(result).isNull();
+	/** Construit une entrée isMemberOf au format LDAP attendu par les regex de configuration. */
+	private static String groupe(String uai, String role, String classe) {
+		return "clg45:Etablissements:FICTIF CLG 45_" + uai + ":3EME:" + role + "_" + classe;
 	}
 
 	private TypedList<String> buildTypedList(List<String> values){
