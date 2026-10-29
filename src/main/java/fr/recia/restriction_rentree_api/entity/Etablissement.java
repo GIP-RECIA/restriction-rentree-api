@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 @Entity
+@Table(name = "etablissement")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"etablissement_id", "nom"}))
+@Table(name = "niveau", uniqueConstraints = @UniqueConstraint(columnNames = {"etablissement_id", "nom"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
