@@ -20,11 +20,9 @@ spring:
       driver-class-name: org.mariadb.jdbc.Driver
 
   jpa:
-    hibernate:
-      ddl-auto: none
+    internal:
       dialect: org.hibernate.dialect.MySQL8Dialect
-    show-sql: true
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+      ddl-auto: validate
 
 restriction:
   uai-reunion:
